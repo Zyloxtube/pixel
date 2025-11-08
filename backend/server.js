@@ -10,43 +10,36 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// مجلدات
+// --- مجلدات وملفات ضرورية ---
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const DATA_DIR = path.join(__dirname, 'data');
 const CODES_FILE = path.join(DATA_DIR, 'codes.json');
 
-// إنشاء المجلدات لو مش موجودة
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+// إنشاء المجلدات وملف codes.json لو مش موجودين
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(CODES_FILE)) fs.writeFileSync(CODES_FILE, '{}');
 
+// --- إعداد Multer للرفع ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, UPLOADS_DIR),
     filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
 
-// --- Upload endpoint ---
+// --- رفع صورة وتقسيم البيكسلات ---
 app.post('/upload', upload.single('image'), async (req, res) => {
     try {
         const file = req.file;
+        if (!file) return res.status(400).json({ error: 'No file uploaded' });
+
         const size = parseInt(req.body.size) || 1024;
-
-        if(!file) return res.status(400).json({ error: 'No file uploaded' });
-
-        // Extract pixels
         const { pixels, width, height } = await extractPixels(file.path);
-
-        // Split into chunks
         const chunks = splitChunks(pixels, 5);
-
-        // Generate code
         const code = generateCode(15);
 
-        // Read existing codes
+        // قراءة الكودات القديمة وتحديثها
         const codesData = JSON.parse(fs.readFileSync(CODES_FILE, 'utf8'));
-
-        // Save new code data
         codesData[code] = {
             status: 'created',
             width,
@@ -54,39 +47,36 @@ app.post('/upload', upload.single('image'), async (req, res) => {
             chunks: 5,
             pixels: chunks
         };
-
         fs.writeFileSync(CODES_FILE, JSON.stringify(codesData, null, 2));
 
         res.json({ code });
-    } catch(err) {
+    } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
     }
 });
 
-// --- Get chunk endpoint ---
+// --- جلب chunk محدد ---
 app.get('/getChunks', (req, res) => {
     const code = req.query.code;
     const chunkIndex = parseInt(req.query.chunk);
 
-    if(!code || isNaN(chunkIndex)) return res.status(400).json({ error: 'Invalid parameters' });
+    if (!code || isNaN(chunkIndex)) return res.status(400).json({ error: 'Invalid parameters' });
 
     const codesData = JSON.parse(fs.readFileSync(CODES_FILE, 'utf8'));
-
-    if(!codesData[code]) return res.status(404).json({ error: 'Code not found' });
+    if (!codesData[code]) return res.status(404).json({ error: 'Code not found' });
 
     const chunk = codesData[code].pixels[chunkIndex];
-
     res.json({ pixels: chunk || [] });
 });
 
-// --- Activate code endpoint ---
+// --- تفعيل الكود ---
 app.post('/activate', (req, res) => {
     const code = req.query.code;
-    if(!code) return res.status(400).json({ error: 'Code required' });
+    if (!code) return res.status(400).json({ error: 'Code required' });
 
     const codesData = JSON.parse(fs.readFileSync(CODES_FILE, 'utf8'));
-    if(!codesData[code]) return res.status(404).json({ error: 'Code not found' });
+    if (!codesData[code]) return res.status(404).json({ error: 'Code not found' });
 
     codesData[code].status = 'active';
     fs.writeFileSync(CODES_FILE, JSON.stringify(codesData, null, 2));
@@ -94,6 +84,6 @@ app.post('/activate', (req, res) => {
     res.json({ message: 'Code activated' });
 });
 
-// --- Start server ---
+// --- تشغيل السيرفر ---
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, ()=>console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
