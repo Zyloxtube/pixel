@@ -27,6 +27,11 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// --- Route رئيسي لتأكيد أن السيرفر يعمل ---
+app.get('/', (req, res) => {
+    res.send('PixelMap Backend is running!');
+});
+
 // --- رفع صورة وتقسيم البيكسلات ---
 app.post('/upload', upload.single('image'), async (req, res) => {
     try {
