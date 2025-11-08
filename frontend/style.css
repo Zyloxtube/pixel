@@ -1,0 +1,67 @@
+/* --- Body & general --- */
+body {
+    font-family: Arial, sans-serif;
+    background: #071027;
+    color: #e6eef6;
+    padding: 20px;
+}
+
+/* --- Card container --- */
+.card {
+    background: #0b1220;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+/* --- Inputs, buttons --- */
+input, select, button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+}
+
+input[type=file] {
+    display: none;
+}
+
+label.btn {
+    background: #06b6d4;
+    color: #032026;
+    cursor: pointer;
+}
+
+/* --- Image preview --- */
+.preview {
+    width: 200px;
+    height: 200px;
+    background: rgba(255,255,255,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed #fff;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+/* --- Code display box --- */
+.code-box {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* --- Chip for code --- */
+.chip {
+    background: rgba(255,255,255,0.03);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+/* --- Buttons hover --- */
+button:hover, label.btn:hover {
+    opacity: 0.9;
+}
