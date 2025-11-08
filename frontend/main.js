@@ -1,3 +1,5 @@
+const BACKEND = 'https://pixel-tests.onrender.com';
+
 const uploadForm = document.getElementById('uploadForm');
 const fileInput = document.getElementById('fileInput');
 const preview = document.getElementById('preview');
@@ -26,7 +28,7 @@ uploadForm.addEventListener('submit', async (e) => {
   status.textContent = 'Uploading...';
   const fd = new FormData(uploadForm);
   try {
-    const res = await fetch('/upload', { method: 'POST', body: fd });
+    const res = await fetch(`${BACKEND}/upload`, { method: 'POST', body: fd });
     if (!res.ok) {
       const t = await res.text();
       status.textContent = 'Upload failed: ' + t;
@@ -36,10 +38,10 @@ uploadForm.addEventListener('submit', async (e) => {
     lastCode = j.code;
     codeChip.textContent = lastCode;
     codeBox.style.display = 'flex';
-    status.textContent = `Code: ${lastCode} (width:${j.width} height:${j.height} chunks:${j.chunks})`;
+    status.textContent = `Code: ${lastCode} (w:${j.width} h:${j.height} chunks:${j.chunks})`;
   } catch (err) {
     console.error(err);
-    status.textContent = 'Server connection error: ' + err.message;
+    status.textContent = 'Server connection error: ' + (err.message || err);
   }
 });
 
@@ -54,14 +56,15 @@ copyBtn.addEventListener('click', () => {
 activateBtn.addEventListener('click', async () => {
   if (!lastCode) return;
   try {
-    const res = await fetch(`/activate?code=${encodeURIComponent(lastCode)}`, { method: 'POST' });
-    const j = await res.json();
-    if (j.message) {
-      alert('Activated');
-    } else {
-      alert('Activate failed: ' + JSON.stringify(j));
+    const res = await fetch(`${BACKEND}/activate?code=${encodeURIComponent(lastCode)}`, { method: 'POST' });
+    if (!res.ok) {
+      const t = await res.text();
+      alert('Activate failed: ' + t);
+      return;
     }
+    const j = await res.json();
+    if (j.message) alert('Activated');
   } catch (err) {
-    alert('Activate error: ' + err.message);
+    alert('Activate error: ' + (err.message || err));
   }
 });
