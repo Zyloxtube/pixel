@@ -10,6 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- ملفات ثابتة (Frontend) ---
+app.use(express.static(path.join(__dirname, '../frontend'))); 
+// __dirname = backend/ → ../frontend يشير لمجلد الواجهة
+
 // --- مجلدات وملفات ضرورية ---
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const DATA_DIR = path.join(__dirname, 'data');
@@ -26,11 +30,6 @@ const storage = multer.diskStorage({
     filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
-
-// --- Route رئيسي لتأكيد أن السيرفر يعمل ---
-app.get('/', (req, res) => {
-    res.send('PixelMap Backend is running!');
-});
 
 // --- رفع صورة وتقسيم البيكسلات ---
 app.post('/upload', upload.single('image'), async (req, res) => {
