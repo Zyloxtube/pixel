@@ -10,10 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve frontend (frontend folder is one level up from backend)
+// Serve frontend from ../frontend (your structure: project/backend and project/frontend)
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// --- folders & files ---
+// --- folders/files ---
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 const DATA_DIR = path.join(__dirname, 'data');
 const CODES_FILE = path.join(DATA_DIR, 'codes.json');
@@ -22,28 +22,27 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(CODES_FILE)) fs.writeFileSync(CODES_FILE, '{}', 'utf8');
 
-// multer storage
+// Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
 
-// Root health (optional)
+// Health
 app.get('/health', (req, res) => res.json({ ok: true }));
 
-// Upload endpoint (POST)
+// Upload (POST) - extracts pixels, splits into chunks, saves metadata
 app.post('/upload', upload.single('image'), async (req, res) => {
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
     const size = parseInt(req.body.size) || 1024;
-
-    // extract pixels -> { pixels, width, height }
+    // extract pixels from image file; extractPixels resizes internally to fit max size
     const { pixels, width, height } = await extractPixels(file.path, size);
 
-    // split into 5 chunks (you can change number)
+    // split into N chunks
     const numChunks = 5;
     const chunks = splitChunks(pixels, numChunks);
 
@@ -61,7 +60,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     };
     fs.writeFileSync(CODES_FILE, JSON.stringify(codesData, null, 2), 'utf8');
 
-    // remove uploaded file to save space
+    // remove temp upload file to save space
     try { fs.unlinkSync(file.path); } catch (e) { /* ignore */ }
 
     return res.json({ code, width, height, chunks: numChunks });
@@ -84,7 +83,7 @@ app.get('/getChunks', (req, res) => {
   return res.json({ pixels: chunk || [], width: codesData[code].width, height: codesData[code].height });
 });
 
-// Activate endpoint (POST)
+// Activate (POST)
 app.post('/activate', (req, res) => {
   const code = req.query.code;
   if (!code) return res.status(400).json({ error: 'Code required' });
@@ -98,10 +97,8 @@ app.post('/activate', (req, res) => {
   return res.json({ message: 'Code activated' });
 });
 
-// Fallback: let static frontend handle root; but keep a small message if needed
+// Fallback root: serve frontend index.html (express.static handles it)
 app.get('/', (req, res) => {
-  // index.html from frontend folder will be served automatically by express.static
-  // This route exists just in case
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
