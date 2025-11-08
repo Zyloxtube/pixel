@@ -1,84 +1,67 @@
+const uploadForm = document.getElementById('uploadForm');
 const fileInput = document.getElementById('fileInput');
 const preview = document.getElementById('preview');
-const uploadBtn = document.getElementById('uploadBtn');
+const sizeSelect = document.getElementById('sizeSelect');
 const codeBox = document.getElementById('codeBox');
 const codeChip = document.getElementById('codeChip');
 const copyBtn = document.getElementById('copyBtn');
 const activateBtn = document.getElementById('activateBtn');
-const sizeSelect = document.getElementById('sizeSelect');
+const status = document.getElementById('status');
 
-let currentFile = null;
+let lastCode = '';
 
-// Show image preview
-fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    currentFile = file;
-
-    preview.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
-    img.style.maxWidth = "100%";
-    img.onload = () => URL.revokeObjectURL(img.src);
-    preview.appendChild(img);
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files[0];
+  if (!f) { preview.textContent = 'No image'; return; }
+  const img = document.createElement('img');
+  img.src = URL.createObjectURL(f);
+  img.style.maxWidth = '100%';
+  img.onload = () => URL.revokeObjectURL(img.src);
+  preview.innerHTML = '';
+  preview.appendChild(img);
 });
 
-// Upload image to backend
-uploadBtn.addEventListener('click', async () => {
-    if (!currentFile) {
-        alert("Please select an image first!");
-        return;
+uploadForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  status.textContent = 'Uploading...';
+  const fd = new FormData(uploadForm);
+  try {
+    const res = await fetch('/upload', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const t = await res.text();
+      status.textContent = 'Upload failed: ' + t;
+      return;
     }
-
-    const formData = new FormData();
-    formData.append('image', currentFile);
-    formData.append('size', sizeSelect.value);
-
-    try {
-        const res = await fetch('http://localhost:3000/upload', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await res.json();
-
-        if (data.code) {
-            codeChip.textContent = data.code;
-            codeBox.style.display = 'flex';
-            alert('Image uploaded and code generated successfully!');
-        } else {
-            alert('Error: ' + JSON.stringify(data));
-        }
-    } catch (err) {
-        alert('Server connection error: ' + err);
-    }
+    const j = await res.json();
+    lastCode = j.code;
+    codeChip.textContent = lastCode;
+    codeBox.style.display = 'flex';
+    status.textContent = `Code: ${lastCode} (width:${j.width} height:${j.height} chunks:${j.chunks})`;
+  } catch (err) {
+    console.error(err);
+    status.textContent = 'Server connection error: ' + err.message;
+  }
 });
 
-// Copy code to clipboard
 copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(codeChip.textContent)
-        .then(() => {
-            copyBtn.textContent = 'Copied';
-            setTimeout(() => copyBtn.textContent = 'Copy', 800);
-        });
+  if (!lastCode) return;
+  navigator.clipboard.writeText(lastCode).then(() => {
+    copyBtn.textContent = 'Copied';
+    setTimeout(()=> copyBtn.textContent = 'Copy', 800);
+  });
 });
 
-// Activate code on server
 activateBtn.addEventListener('click', async () => {
-    const code = codeChip.textContent;
-    if (!code) return;
-
-    try {
-        const res = await fetch(`http://localhost:3000/activate?code=${code}`, {
-            method: 'POST'
-        });
-        const data = await res.json();
-
-        if (data.message) {
-            alert('Code activated successfully!');
-        } else {
-            alert('Error: ' + JSON.stringify(data));
-        }
-    } catch (err) {
-        alert('Server connection error: ' + err);
+  if (!lastCode) return;
+  try {
+    const res = await fetch(`/activate?code=${encodeURIComponent(lastCode)}`, { method: 'POST' });
+    const j = await res.json();
+    if (j.message) {
+      alert('Activated');
+    } else {
+      alert('Activate failed: ' + JSON.stringify(j));
     }
+  } catch (err) {
+    alert('Activate error: ' + err.message);
+  }
 });
