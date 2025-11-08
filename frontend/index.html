@@ -1,122 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pixel Map - Upload Image & Generate Code</title>
-<style>
-  body { font-family: Arial, sans-serif; background:#071027; color:#e6eef6; padding:20px;}
-  .card { background:#0b1220; padding:20px; border-radius:12px; margin-bottom:20px;}
-  input, select, button { padding:8px 12px; border-radius:8px; border:none; font-size:14px;}
-  input[type=file]{display:none;}
-  label.btn{background:#06b6d4; color:#032026; cursor:pointer;}
-  .preview { width:200px; height:200px; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; border:1px dashed #fff; margin-bottom:10px; border-radius:8px;}
-  .code-box{margin-top:10px; display:flex; align-items:center; gap:8px;}
-  .chip{background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:8px; font-weight:700;}
-</style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PixelMap - Upload</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Pixel Map - Upload Image & Generate Code</h1>
-
   <div class="card">
+    <h1>PixelMap — Upload Image</h1>
     <div class="preview" id="preview">No image</div>
-    <label class="btn" for="fileInput">Choose Image</label>
-    <input type="file" id="fileInput" accept="image/*">
 
-    <div style="margin-top:10px;">
-      <label>Max Dimension:</label>
-      <select id="sizeSelect">
-        <option value="1024">1024 (Full)</option>
-        <option value="512">512</option>
-        <option value="256">256</option>
-      </select>
-    </div>
-
-    <div style="margin-top:10px;">
-      <button id="uploadBtn">Upload & Generate Code</button>
-    </div>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" id="fileInput" name="image" accept="image/*" required />
+      <div style="margin-top:8px;">
+        <label for="sizeSelect">Max size:</label>
+        <select id="sizeSelect" name="size">
+          <option value="1024">1024</option>
+          <option value="512">512</option>
+          <option value="256">256</option>
+        </select>
+      </div>
+      <div style="margin-top:10px;">
+        <button type="submit">Upload & Generate Code</button>
+      </div>
+    </form>
 
     <div class="code-box" id="codeBox" style="display:none;">
       <div class="chip" id="codeChip"></div>
       <button id="copyBtn">Copy</button>
       <button id="activateBtn">Activate</button>
     </div>
+    <div id="status" style="margin-top:8px;color:#cbd5e1"></div>
   </div>
 
-<script>
-const fileInput = document.getElementById('fileInput');
-const preview = document.getElementById('preview');
-const uploadBtn = document.getElementById('uploadBtn');
-const codeBox = document.getElementById('codeBox');
-const codeChip = document.getElementById('codeChip');
-const copyBtn = document.getElementById('copyBtn');
-const activateBtn = document.getElementById('activateBtn');
-const sizeSelect = document.getElementById('sizeSelect');
-
-let currentFile = null;
-
-// Show preview
-fileInput.addEventListener('change', (e) => {
-  const f = e.target.files[0];
-  if(!f) return;
-  currentFile = f;
-  preview.innerHTML = '';
-  const img = document.createElement('img');
-  img.src = URL.createObjectURL(f);
-  img.style.maxWidth = "100%";
-  img.onload = () => URL.revokeObjectURL(img.src);
-  preview.appendChild(img);
-});
-
-// Upload image to server
-uploadBtn.addEventListener('click', async () => {
-  if(!currentFile){ alert('Please choose an image first'); return; }
-
-  const formData = new FormData();
-  formData.append('image', currentFile);
-  formData.append('size', sizeSelect.value);
-
-  try{
-    const res = await fetch('http://localhost:3000/upload',{
-      method:'POST',
-      body: formData
-    });
-    const data = await res.json();
-    if(data.code){
-      codeChip.textContent = data.code;
-      codeBox.style.display = 'flex';
-      alert('Image uploaded and code generated successfully!');
-    }else{
-      alert('Error: ' + JSON.stringify(data));
-    }
-  }catch(err){
-    alert('Server connection error: ' + err);
-  }
-});
-
-// Copy code
-copyBtn.addEventListener('click', () => {
-  navigator.clipboard.writeText(codeChip.textContent)
-    .then(()=>{ copyBtn.textContent='Copied'; setTimeout(()=>copyBtn.textContent='Copy',800); });
-});
-
-// Activate code
-activateBtn.addEventListener('click', async () => {
-  const code = codeChip.textContent;
-  try{
-    const res = await fetch(`http://localhost:3000/activate?code=${code}`, {
-      method:'POST'
-    });
-    const data = await res.json();
-    if(data.message){
-      alert('Code activated successfully!');
-    }else{
-      alert('Error: ' + JSON.stringify(data));
-    }
-  }catch(err){
-    alert('Server connection error: ' + err);
-  }
-});
-</script>
+<script src="main.js"></script>
 </body>
 </html>
